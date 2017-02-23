@@ -7,6 +7,7 @@
 	var user_fullname = '';
 	var lng           = -122.08;
 	var lat           = 37.38;
+	var state		  = "CA";
 
 	/**
 	 * Initialize
@@ -102,14 +103,52 @@
 	function onPositionUpdated(position) {
 		lat = position.coords.latitude;
 		lng = position.coords.longitude;
+		getState();
 
 		loadNearbyRestaurants();
 	}
 
 	function onLoadPositionFailed() {
 		console.warn('navigator.geolocation is not available');
-		loadNearbyRestaurants();
+		getLocationFromIP();
 	}
+
+	function getLocationFromIP() {
+		// Get location from http://ipinfo.io/json
+		var url = 'http://ipinfo.io/json';
+			var req = null;
+		ajax('GET', url, req,
+				function (res) {
+			var result = JSON.parse(res);
+			if ('loc' in result) {
+				var loc = result.loc.split(',');
+				lat = loc[0];
+				lng = loc[1];
+				state = getState();
+			} else {
+				console.warn('Getting location by IP failed.');
+			}
+			loadNearbyRestaurants();
+		}
+		);
+	}
+	
+	function getState(){
+		var url = 'https://congress.api.sunlightfoundation.com/districts/locate?latitude=' + lat + '&longitude=' + lng;
+			var req = null;
+		ajax('GET', url, req,
+				function (res) {
+			var result = JSON.parse(res);
+			if(result.count!=0){
+				state = result.results[0].state;
+				console.log(state);
+			}else{
+				console.warn("Can't get state.");
+			}
+		}
+		);
+	}
+
 
 //	-----------------------------------
 //	Login
@@ -340,7 +379,7 @@
 
 		// The request parameters
 		var url = './recommendation';
-		var params = 'user_id=' + user_id;
+		var params = 'user_id=' + user_id + '&state=' + state;
 		var req = JSON.stringify({});
 
 		// display loading message
@@ -352,7 +391,7 @@
 				function (res) {
 			var restaurants = JSON.parse(res);
 			if (!restaurants || restaurants.length === 0) {
-				showWarningMessage('No recommended restaurant. Make sure you have favorites.');
+				showWarningMessage('No recommended restaurant. Mark a restaurant you like first.');
 			} else {
 				listRestaurants(restaurants);
 			}
@@ -455,7 +494,7 @@
 
 		// stars
 		var stars = $('div', {className: 'stars'});
-		for (var i = 0; i < restaurant.stars; i++) {
+		for (var i = 0; i < parseInt(restaurant.stars); i++) {
 			var star = $('i', {className: 'fa fa-star'});
 			stars.appendChild(star);
 		}

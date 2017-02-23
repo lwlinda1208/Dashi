@@ -130,7 +130,7 @@ public class MySQLDBConnection implements DBConnection{
 	}
 
 	@Override
-	public JSONArray recommendRestaurants(String userId) {
+	public JSONArray recommendRestaurants(String userId, String state) {
 		// TODO Auto-generated method stub
 		try {
 			if (conn == null) {
@@ -143,9 +143,10 @@ public class MySQLDBConnection implements DBConnection{
 			}
 			Set<String> allRestaurants = new HashSet<>();//step 3
 			for (String category : allCategories) {
-				Set<String> set = getBusinessId(category);
+				Set<String> set = getBusinessId(state, category);
 				allRestaurants.addAll(set);
 			}
+			
 			Set<JSONObject> diff = new HashSet<>();//step 4
 			int count = 0;
 			for (String businessId : allRestaurants) {
@@ -190,15 +191,16 @@ public class MySQLDBConnection implements DBConnection{
 	}
 
 	@Override
-	public Set<String> getBusinessId(String category) {
+	public Set<String> getBusinessId(String state, String category) {
 		// TODO Auto-generated method stub
 		Set<String> set = new HashSet<>();
 		try {
 			// if category = Chinese, categories = Chinese, Korean, Japanese,
 			// it's a match
-			String sql = "SELECT business_id from restaurants WHERE categories LIKE ?";
+			String sql = "SELECT business_id from restaurants WHERE state = ? AND categories LIKE ?";
 			PreparedStatement statement = (PreparedStatement) conn.prepareStatement(sql);
-			statement.setString(1, "%" + category + "%");
+			statement.setString(1, state);
+			statement.setString(2, "%" + category + "%");
 			ResultSet rs = statement.executeQuery();
 			while (rs.next()) {
 				String businessId = rs.getString("business_id");
